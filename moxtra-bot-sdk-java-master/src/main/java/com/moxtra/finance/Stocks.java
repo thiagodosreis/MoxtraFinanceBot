@@ -90,14 +90,8 @@ public class Stocks extends MoxtraBot {
 		String access_token = chat.getAccess_token();
 		
 		// store binder based Moxtra access_token
-		moxtraAccessToken.put(binder_id, access_token);
-		
-		StringBuilder richtext = new StringBuilder();
-		richtext.append("[table][tr][td]Hello @" + username + "![/td][/tr]");
-		richtext.append("[tr][td]Welcome to Moxtra Finbot!![/td][/tr]");
-		richtext.append("[tr][td]To learn how to play with me, please type: @Finbot help[/td][/tr][/table]"); 
-		
-		chat.sendRequest(new Comment.Builder().richtext(richtext.toString()).build());
+		moxtraAccessToken.put(binder_id, access_token);		
+		chat.sendRequest(new Comment.Builder().richtext(showDefaultMsg(username)).build());
 	}
 	
 	//BOT_UNINSTALLED
@@ -113,85 +107,13 @@ public class Stocks extends MoxtraBot {
 	
 
 	
-	//SUMMARY: "@Finbot show (.*) summary"
-	@EventHandler(patterns = {"@Finbot show (.*) summary"})
-	public void getSummaryStock(Chat chat){
+	//SUMMARY: "@Finbot (.*) quote"
+	@EventHandler(patterns = {"@Finbot (.*) quote"})
+	public void getStockQuote(Chat chat){
 		Matcher matcher = chat.getMatcher();
 		String stock = matcher.group(1);
 		
 		//chat.sendRequest(new Comment.Builder().text("Primatches:"+String.valueOf(chat.getPrimatches())).build());
-		
-		if (stock == null || stock == ""){
-			chat.sendRequest(new Comment.Builder().text("Sorry, I didn't get the stock name.").build());
-			return;
-		}
-		
-		RestTemplate restTemplate = new RestTemplate();
-		String jsonRet = "";
-		StringBuilder richtext = new StringBuilder();
-		
-        try {
-        	HttpHeaders headers = new HttpHeaders();
-            headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
-            logger.info(" > > > > > Getting stock summary for: "+stock+"! < < < < < ");
-            
-            //Calling Google Finance API to get the stock quote
-        	ResponseEntity<String> response = restTemplate.exchange(quoteURL+stock, HttpMethod.GET, entity, String.class);
-        	jsonRet = response.getBody().replace("//", "");
-                        
-            //convert JSON to Java symbs Object
-            ObjectMapper mapper = new ObjectMapper();            
-        	List<Symbol> symbs = mapper.readValue(jsonRet, new TypeReference<List<Symbol>>(){});
-      
-        	
-        	String color = "";
-        	for(Symbol symb : symbs){
-        		if (symb.getC() == ""){
-        			chat.sendRequest(new Comment.Builder().text("Sorry, I couldn't get the summary for: "+stock).build());
-        			return;
-        		}
-        		
-        		color = "#FF0000"; //red
-        		if( Double.parseDouble(symb.getC()) > 0 )
-        			color = "#008000"; //green
-        		
-        		richtext.append("[size=12]Sumary for "+symb.getE()+":[b]" + symb.getT() + "[/b][/size][table]");
-        		richtext.append("[tr][td][size=28]USD " + symb.getL() + "[/size][/td][td][color="+color+"]" + symb.getC() + "[/color][/td][td][color="+color+"](" +symb.getCp() + "%)[/color][/td][td][img]"+ miniChartURL + symb.getT() +"&cht=s[/img][/td][/tr]");
-        		richtext.append("[tr][td][size=10]" + symb.getLt() + "[/size][/td][/tr]");	
-        		richtext.append("[/table]"); 
-        	}
-        } catch (RestClientException e) {
-        	chat.sendRequest(new Comment.Builder().text("Sorry, I couldn't find the stock: "+stock+"/nPlease try: @Finbot show AAPL summary").build());
-            logger.error(
-					" > > > > > > getSummaryStock ERROR! " +
-					"   Stock: " + stock + 
-					" - Binder: " + chat.getBinder_id() +
-					" - Message: "+e.getMessage()
-					);
-        }
-        catch (JsonGenerationException ex) { 
-        	ex.printStackTrace(); 
-        	} 
-        catch (JsonMappingException ex) { 
-        	ex.printStackTrace(); 
-        	}
-		catch (IOException ex) {
-	        ex.printStackTrace();
-	    }
-		
-		chat.sendRequest(new Comment.Builder().richtext(richtext.toString()).build());
-		
-		
-		
-	}
-
-	//SUMMARY: "@Finbot show (.*) quote"
-	@EventHandler(patterns = {"@Finbot show (.*) quote"})
-	public void getStockQuote(Chat chat){
-		Matcher matcher = chat.getMatcher();
-		String stock = matcher.group(1);
 		
 		if (stock == null || stock == ""){
 			chat.sendRequest(new Comment.Builder().text("Sorry, I didn't get the stock name.").build());
@@ -229,8 +151,80 @@ public class Stocks extends MoxtraBot {
         		if( Double.parseDouble(symb.getC()) > 0 )
         			color = "#008000"; //green
         		
-        		//quote
         		richtext.append("[size=12]Quote for "+symb.getE()+":[b]" + symb.getT() + "[/b][/size][table]");
+        		richtext.append("[tr][td][size=28]USD " + symb.getL() + "[/size][/td][td][color="+color+"]" + symb.getC() + "[/color][/td][td][color="+color+"](" +symb.getCp() + "%)[/color][/td][td][img]"+ miniChartURL + symb.getT() +"&cht=s[/img][/td][/tr]");
+        		richtext.append("[tr][td][size=10]" + symb.getLt() + "[/size][/td][/tr]");	
+        		richtext.append("[/table]"); 
+        	}
+        } catch (RestClientException e) {
+        	chat.sendRequest(new Comment.Builder().text("[table][tr][td]Sorry, I didn't find that stock.[/td][/tr][tr][td]Please use this format: [color=red]@Finbot AAPL quote[/color][/td][/tr][/table]").build());
+            logger.error(
+					" > > > > > > getStockQuote ERROR! " +
+					"   Stock: " + stock + 
+					" - Binder: " + chat.getBinder_id() +
+					" - Message: "+e.getMessage()
+					);
+        }
+        catch (JsonGenerationException ex) { 
+        	ex.printStackTrace(); 
+        	} 
+        catch (JsonMappingException ex) { 
+        	ex.printStackTrace(); 
+        	}
+		catch (IOException ex) {
+	        ex.printStackTrace();
+	    }
+		
+		chat.sendRequest(new Comment.Builder().richtext(richtext.toString()).build());
+		
+		
+		
+	}
+
+	//SUMMARY: "@Finbot (.*) summary"
+	@EventHandler(patterns = {"@Finbot (.*) summary"})
+	public void getSummaryStock(Chat chat){
+		Matcher matcher = chat.getMatcher();
+		String stock = matcher.group(1);
+		
+		if (stock == null || stock == ""){
+			chat.sendRequest(new Comment.Builder().text("Sorry, I didn't get the stock name.").build());
+			return;
+		}
+		
+		RestTemplate restTemplate = new RestTemplate();
+		String jsonRet = "";
+		StringBuilder richtext = new StringBuilder();
+		
+        try {
+        	HttpHeaders headers = new HttpHeaders();
+            headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            logger.info(" > > > > > Getting stock summary for: "+stock+"! < < < < < ");
+            
+            //Calling Google Finance API to get the stock quote
+        	ResponseEntity<String> response = restTemplate.exchange(quoteURL+stock, HttpMethod.GET, entity, String.class);
+        	jsonRet = response.getBody().replace("//", "");
+                        
+            //convert JSON to Java symbs Object
+            ObjectMapper mapper = new ObjectMapper();            
+        	List<Symbol> symbs = mapper.readValue(jsonRet, new TypeReference<List<Symbol>>(){});
+      
+        	
+        	String color = "";
+        	for(Symbol symb : symbs){
+        		if (symb.getC() == ""){
+        			chat.sendRequest(new Comment.Builder().text("Sorry, I couldn't get the summary for: "+stock).build());
+        			return;
+        		}
+        		
+        		color = "#FF0000"; //red
+        		if( Double.parseDouble(symb.getC()) > 0 )
+        			color = "#008000"; //green
+        		
+        		//quote
+        		richtext.append("[size=12]Summary for "+symb.getE()+":[b]" + symb.getT() + "[/b][/size][table]");
         		richtext.append("[tr][td][size=28]USD " + symb.getL() + "[/size] [color="+color+"]" + symb.getC() + "[/color] [color="+color+"](" +symb.getCp() + "%)[/color][/td][/tr]");
         		
         		//after hours
@@ -246,24 +240,18 @@ public class Stocks extends MoxtraBot {
         		
         		//date last 
         		richtext.append("[tr][td][size=10]" + symb.getLt() + "[/size][/td][/tr]");
-
         		richtext.append("[/table]"); 
         		
-        		
-        		
-        		
-        		
         		//chart 60 days
-        		richtext.append("[img=400x250]https://www.google.com/finance/getchart?q="+symb.getT()+"&p=60d[/img]");
-        		
+        		richtext.append("[img=400x250]" + chartURL +symb.getT()+"&p=7d[/img]");
         		chat.sendRequest(new Comment.Builder().richtext(richtext.toString()).build());
         		
         		//chart(stock,chat,"&p=60d");
         	}
         } catch (RestClientException e) {
-        	chat.sendRequest(new Comment.Builder().text("Sorry, I couldn't find the stock: "+stock+"/nPlease try: @Finbot show GOOG quote").build());
+        	chat.sendRequest(new Comment.Builder().text("[table][tr][td]Sorry, I didn't find that stock.[/td][/tr][tr][td]Please use this format: [color=red]@Finbot GOOG summary[/color][/td][/tr][/table]").build());
             logger.error(
-					" > > > > > > getStockQuote ERROR! " +
+					" > > > > > > getStockSummary ERROR! " +
 					"   Stock: " + stock + 
 					" - Binder: " + chat.getBinder_id() +
 					" - Message: "+e.getMessage()
@@ -281,14 +269,14 @@ public class Stocks extends MoxtraBot {
 	}
 	
 	//CURRENCY: @Finbot currency converter (.*) to (.*)
-	@EventHandler(patterns = {"@Finbot currency converter (.*) to (.*)"})
+	@EventHandler(patterns = {"@Finbot (.*) to (.*)"})
 	public void getCurrencyExchange(Chat chat){
 		Matcher matcher = chat.getMatcher();
 		String currencyFrom = matcher.group(1).toUpperCase();
 		String currencyTO = matcher.group(2).toUpperCase();
 		
 		if (currencyFrom == null || currencyFrom == "" || currencyTO == null || currencyTO == ""){
-			chat.sendRequest(new Comment.Builder().text("Sorry, I didn't get the currency symbols. Please, try: currency converter USD to EUR").build());
+			chat.sendRequest(new Comment.Builder().text("[table][tr][td]Sorry, I didn't find the currencies.[/td][/tr][tr][td]Please use this format: [color=red]@Finbot USD to EUR[/color][/td][/tr][/table]").build());
 			return;
 		}
 		
@@ -321,12 +309,12 @@ public class Stocks extends MoxtraBot {
         		richtext.append("[tr][td] 1 " + symb.getT().substring(0, 2) + "[/td][/tr]");
         		richtext.append("[tr][td][size=28]" + symb.getL() + " " + symb.getT().substring(3) + "[/size][/td][/tr]");
         		richtext.append("[tr][td][size=10]" + symb.getLt() + "[/size][/td][/tr]");
-        		richtext.append("[tr][td][img]https://www.google.com/finance/chart?q=CURRENCY:"+symb.getT()+"&tkr=1&p=2Y&chst=vkc&chs=300x160[/img][/td][/tr]");
+        		richtext.append("[tr][td][img]"+miniChartURL+"CURRENCY:"+symb.getT()+"&tkr=1&p=2Y&chst=vkc&chs=300x160[/img][/td][/tr]");
         		richtext.append("[/table]"); 
         	}
 
         } catch (RestClientException e) {
-        	chat.sendRequest(new Comment.Builder().text("Sorry, I couldn't find the currencies for: "+currencyFrom+ " and "+currencyTO+"/nPlease try: @Finbot currency converter USD to EUR").build());
+        	chat.sendRequest(new Comment.Builder().text("[table][tr][td]Sorry, I didn't find the currencies.[/td][/tr][tr][td]Please use this format: [color=red]@Finbot USD to EUR[/color][/td][/tr][/table]").build());
             logger.error(
 					" > > > > > > getCurrencyExchange ERROR! " +
 					"   currencyFrom: " + currencyFrom +
@@ -349,8 +337,8 @@ public class Stocks extends MoxtraBot {
 				
 	}
 	
-	//CHART: "@Finbot show (.*) (graph|chart)"
-	@EventHandler(patterns = {"@Finbot show (.*) (graph|chart)"})
+	//CHART: "@Finbot (.*) (graph|chart)"
+	@EventHandler(patterns = {"@Finbot (.*) (graph|chart)"})
 	public void getChart(Chat chat) throws IOException {
 		Matcher matcher = chat.getMatcher();
 		String stock = matcher.group(1).toUpperCase();
@@ -360,20 +348,21 @@ public class Stocks extends MoxtraBot {
 			return;
 		}
 		
+		stock = stock.replace("[", "").replace("]", "");
 		
-		Button postback_button1 = new Button("7 days");
-		Button postback_button2 = new Button("30 days");
-		Button postback_button3 = new Button("3 months");
-		Button postback_button4 = new Button("1 year");
-		postback_button1.setPayload(stock+"&p=7d");
+//		Button postback_button1 = new Button(" 7 days ");
+		Button postback_button2 = new Button("30 days ");
+		Button postback_button3 = new Button("90 days");
+		Button postback_button4 = new Button("1 year ");
+//		postback_button1.setPayload(stock+"&p=7d");
 		postback_button2.setPayload(stock+"&p=1M");
 		postback_button3.setPayload(stock+"&p=3M");
 		postback_button4.setPayload(stock+"&p=1Y");
 		
 		
-		String message = "What's the period for your chart?";
+		String message = "Select chart period:";
 		
-		chat.sendRequest(new Comment.Builder().text(message).addButton(postback_button1)
+		chat.sendRequest(new Comment.Builder().text(message) //.addButton(postback_button1)
 				.addButton(postback_button2)
 				.addButton(postback_button3)
 				.addButton(postback_button4).build());
@@ -387,12 +376,12 @@ public class Stocks extends MoxtraBot {
 	}
 	
 	//private method to post the chart to the binder as an attached img
-	private void chart(String stock, Chat chat, String period){
+	private void chart(String stock, Chat chat, String period, String stockName){
 		DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
 		Date date = new Date();
 		
 		String tempDir = System.getProperty("java.io.tmpdir");
-		File file = new File(tempDir + "/" + stock + "_stock_" + dateFormat.format(date) + ".png");
+		File file = new File(tempDir + "/" + stockName + "_stock_" + dateFormat.format(date) + ".png");
 		
 		try{	
 			//Download the file
@@ -424,30 +413,37 @@ public class Stocks extends MoxtraBot {
 		String payload = chat.getPostback().getPayload();
 		String text = chat.getPostback().getText();
 		
-		chat.sendRequest(new Comment.Builder().text("Here is the chart for "+text).build());
-		chart(payload,chat,"");
+		String segments[] = payload.split("&");
+		String stockName = segments[0];
+		
+		chat.sendRequest(new Comment.Builder().text("Here is the "+text + " chart for "+stockName +":").build());
+		chart(payload,chat,"", stockName);
 	}		
 	
 	//help @Finbot
 	@EventHandler(patterns = {"@Finbot (help)?","help"})
 	public void onHelp(Chat chat) {
-		String username = chat.getUsername();
-		
-		if (chat.getPrimatches() == 0) {
-			//chat.sendRequest(new Comment.Builder().text("Primatches:"+String.valueOf(chat.getPrimatches())).build());
-			
-			StringBuilder richtext = new StringBuilder();
-			richtext.append("[table][tr][th]Hello " + username +  ", I'm your Moxtra Finance Bot![/th][/tr]");
-			richtext.append("[tr][td]I'm still learning everyday, but for now you can try:[/td][/tr]");
-			richtext.append("[tr][td]- @Finbot show [Stock name] summary[/td][/tr]");		
-			richtext.append("[tr][td]- @Finbot show [Stock name] quote[/td][/tr]");
-			richtext.append("[tr][td]- @Finbot show [Stock name] chart[/td][/tr]");
-			richtext.append("[tr][td]- @Finbot currency converter [currency symbol] to [currency symbol][/td][/tr]");
-			richtext.append("[/table]");  
-			
-			chat.sendRequest(new Comment.Builder().richtext(richtext.toString()).build());
+		String username = chat.getUsername();		
+		if (chat.getPrimatches() == 0) {		
+			chat.sendRequest(new Comment.Builder().richtext(showDefaultMsg(username)).build());
 		}
-		
 	}	
+	
+	private String showDefaultMsg(String username){
+		StringBuilder richtext = new StringBuilder();
+		richtext.append("[table][tr][th]Hey " + username +  ", I'm the Moxtra Finance Robot, your finance assistant. It's nice to be here.[/th][/tr][tr][td][/td][/tr]");
+		richtext.append("[tr][td]I can show stock quote[/td][/tr]");
+		richtext.append("[tr][td][color=red]@Finbot GOOG quote[/color][/td][/tr][tr][td][/td][/tr]");		
+		richtext.append("[tr][td]I can show stock summary[/td][/tr]");
+		richtext.append("[tr][td][color=red]@Finbot AAPL summary[/color][/td][/tr][tr][td][/td][/tr]");
+		richtext.append("[tr][td]I can show stock chart[/td][/tr]");
+		richtext.append("[tr][td][color=red]@Finbot DIS chart[/color][/td][/tr][tr][td][/td][/tr]");
+		richtext.append("[tr][td]I can show currency conversions[/td][/tr]");
+		richtext.append("[tr][td][color=red]@Finbot USD to EUR[/color][/td][/tr]");
+		richtext.append("[tr][td]For help, just type \"help\"[/td][/tr]");
+		richtext.append("[/table]");  
+		
+		return richtext.toString();
+	}
 	
 }
