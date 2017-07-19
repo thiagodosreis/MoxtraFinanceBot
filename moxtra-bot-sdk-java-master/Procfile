@@ -1,1 +1,1 @@
-web: java -Dserver.port=$PORT -jar target/moxtra-bot.war
+web: java -Dserver.port=$PORT -jar target/finbot.war

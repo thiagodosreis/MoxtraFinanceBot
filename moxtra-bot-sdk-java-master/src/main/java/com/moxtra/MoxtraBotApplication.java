@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.support.SpringBootServletInitializer;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,13 +19,12 @@ import com.moxtra.bot.OAuth2;
 import com.moxtra.finance.Stocks;
 
 
-
-
 @RestController
 @SpringBootApplication
-public class MoxtraBotApplication {
+public class MoxtraBotApplication extends SpringBootServletInitializer {
 	private static final Logger logger = LoggerFactory.getLogger(MoxtraBotApplication.class);
 
+	
 	@Autowired
 //	private MyBot bot; 
 	private Stocks bot;
@@ -72,7 +73,16 @@ public class MoxtraBotApplication {
 	}	
 	
 	// Application	
-	public static void main(String[] args) {
-		SpringApplication.run(MoxtraBotApplication.class, args);
-	}
+//	public static void main(String[] args) {
+//		SpringApplication.run(MoxtraBotApplication.class, args);
+//	}
+	
+	@Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+        return application.sources(MoxtraBotApplication.class);
+    }
+	
+    public static void main(String[] args) throws Exception {
+        SpringApplication.run(MoxtraBotApplication.class, args);
+    }
 }
